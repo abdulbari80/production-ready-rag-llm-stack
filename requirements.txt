@@ -1,18 +1,22 @@
+pip==25.3
+python == 3.11.14
+
 # === Core LangChain packages ===
 langchain==1.0.5
 langchain-core==1.0.4
 langchain-community==0.4.1
-langchain-ollama==1.0.0
-langchain-text-splitters==1.0.0
+# langchain-ollama==1.0.0
+# langchain-text-splitters==1.0.0
 langchain-huggingface==1.0.0
+huggingface-hub==0.36.0
 
 # === Embeddings and NLP ===
-sentence-transformers==2.7.0
-tiktoken==0.8.0
-pypdf==5.1.0
+# sentence-transformers==2.7.0
+# tiktoken==0.8.0
+# pypdf==5.1.0
 
 # === Vector Store ===
-faiss-cpu==1.12.0
+faiss-cpu==1.9.0
 
 # === Math / Array backend ===
 numpy==1.26.4
