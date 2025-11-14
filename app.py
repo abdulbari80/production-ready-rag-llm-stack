@@ -64,8 +64,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.subheader("My AI Buddy")
-st.markdown("###### Chat with AI on Australian Privacy Act")
-st.caption("RAG Demo • HuggingFace + LangChain + FAISS • Mobile Friendly")
+st.markdown("###### Let AI speak on Australian privacy law")
+st.caption("RAG • HuggingFace + LangChain + FAISS • Mobile Friendly")
 
 
 # ---------------------------------------------------------

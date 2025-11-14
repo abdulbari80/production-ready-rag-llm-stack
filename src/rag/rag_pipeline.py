@@ -26,9 +26,8 @@ HF_API_TOKEN = os.getenv("HUGGINGFACE_API_TOKEN", "").strip('"').strip("'")
 
 if not HF_API_TOKEN:
     raise ValueError("HuggingFace API token not found in environment variables!")
-
-logger.info(f"Token loaded successfully: {HF_API_TOKEN[:3]} …")  # check if API loaded
-
+else:
+    logger.info("API Key successfully loaded")
 # Settings
 HF_REPO_ID = settings.hfh_repo_id
 TEMPERATURE = settings.llm_temperature
@@ -126,10 +125,15 @@ class RAGPipeline:
         # Stream individual tokens
         for event in response:
             try:
-                if hasattr(event, "choices"):
-                    delta = event.choices[0].delta
-                    if delta and delta.content:
+                # Make sure choices exist and is non-empty
+                if hasattr(event, "choices") and event.choices:
+                    choice = event.choices[0]
+                    delta = getattr(choice, "delta", None)
+
+                    # Sometimes delta itself can be None
+                    if delta and getattr(delta, "content", None):
                         yield {"token": delta.content}
+
             except Exception as e:
                 logger.exception(f"Streaming token parse error: {e}")
 
