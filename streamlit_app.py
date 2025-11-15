@@ -66,7 +66,7 @@ body, .block-container {
 
 st.subheader("My AI Buddy")
 st.markdown("###### Let AI speak on Australian privacy law")
-st.caption("LLM • RAG • HuggingFace • LangChain • FAISS")
+# st.caption("LLM • RAG • HuggingFace • LangChain • FAISS")
 st.caption("Design & development: Abdul Bari (abdulbari80@gmail.com)")
 
 # ---------------------------------------------------------
@@ -87,7 +87,7 @@ with st.sidebar:
     if st.button("Clear Chat"):
         st.session_state.messages = []
     st.markdown("---")
-    st.caption("Streamlit Cloud • LangChain • HF Inference API")
+    st.caption("LangChain • Hugging Face • Llama-3.2-1B-Instruct • FAISS • Streamlit Cloud")
 
 # ---------------------------------------------------------
 # Display Chat History (top)
