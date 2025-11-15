@@ -66,7 +66,8 @@ body, .block-container {
 
 st.subheader("My AI Buddy")
 st.markdown("###### Let AI speak on Australian privacy law")
-st.caption("LLM • RAG • HuggingFace + LangChain + FAISS")
+st.caption("LLM • RAG • HuggingFace • LangChain • FAISS")
+st.caption("Design & development: Abdul Bari (abdulbari80@gmail.com)")
 
 # ---------------------------------------------------------
 # Initialize Session State
@@ -86,7 +87,7 @@ with st.sidebar:
     if st.button("Clear Chat"):
         st.session_state.messages = []
     st.markdown("---")
-    st.caption("Streamlit Cloud • CPU-only • HF Inference API")
+    st.caption("Streamlit Cloud • LangChain • HF Inference API")
 
 # ---------------------------------------------------------
 # Display Chat History (top)
@@ -105,7 +106,7 @@ for msg in st.session_state.messages:
 # ---------------------------------------------------------
 # Chat Input (bottom)
 # ---------------------------------------------------------
-user_input = st.chat_input("Ask about Australian privacy law ...")
+user_input = st.chat_input("Ask anything on privacy law ...")
 
 if user_input:
     # Store user message

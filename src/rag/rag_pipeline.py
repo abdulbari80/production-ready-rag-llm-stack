@@ -155,7 +155,9 @@ class RAGPipeline:
             return (
                 "You are a helpful assistant.\n"
                 "This intends to answer the questions on Australian privacy laws.\n"
-                "As far as possible give reference to the relevant section of the Act.\n"
+                "Commence with a thanks note for asking the question.\n"
+                "But don't explicitly mention that the answer is based on the provided context.\n"
+                #"As far as possible give reference to the relevant section of the Act.\n"
                 "If no relevant answer is not found admit with honesty.\n\n"
                 f"Context:\n{context}\n\n"
                 f"Question: {query}\nAnswer:"
