@@ -154,8 +154,9 @@ class RAGPipeline:
             context = "\n\n".join([d.page_content for d in docs])
             return (
                 "You are a helpful assistant.\n"
-                "This intends to provide accurate answers to the questions on Australian privacy laws.\n"
-                "If no relevant answer is not found admit with honesty.\n"
+                "This intends to answer the questions on Australian privacy laws.\n"
+                "As far as possible give reference to the relevant section of the Act.\n"
+                "If no relevant answer is not found admit with honesty.\n\n"
                 f"Context:\n{context}\n\n"
                 f"Question: {query}\nAnswer:"
             )
