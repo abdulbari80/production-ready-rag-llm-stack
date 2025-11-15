@@ -24,8 +24,20 @@ DEFAULT_STORE_DIR = settings.faiss_index_dir
 
 class FaissStore:
     """
-    Wrapper around LangChain's FAISS vector store.
-    Handles index creation, saving, loading, and similarity search.
+    Wrapper around LangChain's FAISS vector store that handles:
+    - Index creation
+    - Index loading
+    - Index persistence to disk
+    - Similarity search operations
+
+    This class abstracts FAISS-related operations to keep the RAG pipeline
+    modular, testable, and easier to maintain.
+
+    Parameters
+    ----------
+    embedding_model : HuggingFaceEmbeddings, optional
+        A custom embedding model. If not provided, the model defined in settings
+        is used.
     """
 
     def __init__(self, embedding_model: Optional[HuggingFaceEmbeddings] = None):
@@ -36,9 +48,38 @@ class FaissStore:
 
     @property
     def is_loaded(self) -> bool:
+        """
+        Indicates whether the FAISS vector store has been successfully loaded
+        or created.
+
+        Returns
+        -------
+        bool
+            True if a FAISS store is available in memory, False otherwise.
+        """
         return self.vector_store is not None
 
     def create_store(self, documents: List[Document]) -> FAISS:
+        """
+        Create and persist a FAISS index from a list of LangChain `Document` objects.
+
+        Parameters
+        ----------
+        documents : List[Document]
+            The documents from which embeddings will be generated.
+
+        Returns
+        -------
+        FAISS
+            The created and saved FAISS index.
+
+        Raises
+        ------
+        ValueError
+            If the input document list is empty.
+        EmbeddingModelError
+            If embedding generation or FAISS index construction fails.
+        """
         if not documents:
             raise ValueError("No documents provided for FAISS index creation.")
 
@@ -48,7 +89,6 @@ class FaissStore:
             texts = [doc.page_content for doc in documents]
             metadatas = [doc.metadata for doc in documents]
 
-            # FAISS cosine similarity: normalize vectors
             self.vector_store = FAISS.from_texts(
                 texts=texts,
                 embedding=self.embedding_model,
@@ -62,6 +102,7 @@ class FaissStore:
                 f"FAISS store successfully created and saved at: {self.store_dir} "
                 f"with {self.vector_store.index.ntotal} vectors."
             )
+
             return self.vector_store
 
         except Exception as e:
@@ -69,23 +110,63 @@ class FaissStore:
             raise EmbeddingModelError(f"Failed to create FAISS index: {str(e)}") from e
 
     def load_store(self) -> FAISS:
+        """
+        Load an existing FAISS index from the configured store directory.
+
+        Returns
+        -------
+        FAISS
+            The loaded FAISS index.
+
+        Raises
+        ------
+        DocumentLoadError
+            If the FAISS index cannot be found or loaded.
+        """
         try:
             self.vector_store = FAISS.load_local(
                 self.store_dir,
                 embeddings=self.embedding_model,
                 allow_dangerous_deserialization=True
             )
-            logger.info(f"FAISS store loaded from {self.store_dir} with {self.vector_store.index.ntotal} vectors.")
+            logger.info(
+                f"FAISS store loaded from {self.store_dir} "
+                f"with {self.vector_store.index.ntotal} vectors."
+            )
+
             return self.vector_store
 
         except FileNotFoundError as e:
             logger.error(f"FAISS store not found at {self.store_dir}.")
             raise DocumentLoadError(f"FAISS index not found at path: {self.store_dir}") from e
+
         except Exception as e:
             logger.exception("Error while loading FAISS store.")
             raise DocumentLoadError(f"Failed to load FAISS store: {str(e)}") from e
 
     def similarity_search(self, query: str, k: int = 3) -> List[Document]:
+        """
+        Perform a similarity search on the FAISS index using the given query string.
+
+        Parameters
+        ----------
+        query : str
+            The user query or text input for which similar documents are retrieved.
+        k : int, optional
+            Number of top matching results to return. Defaults to 3.
+
+        Returns
+        -------
+        List[Document]
+            A list of matching documents with their similarity scores.
+
+        Raises
+        ------
+        VectorStoreNotInitializedError
+            If the FAISS index has not been loaded or created.
+        RetrievalError
+            If the underlying FAISS search operation fails.
+        """
         if not self.is_loaded:
             logger.error("Attempted similarity search before initializing FAISS store.")
             raise VectorStoreNotInitializedError()
@@ -93,6 +174,7 @@ class FaissStore:
         try:
             results = self.vector_store.similarity_search_with_score(query, k=k)
             return results
+
         except Exception as e:
             logger.exception("Error during similarity search.")
             raise RetrievalError(f"Failed similarity search for query '{query}': {str(e)}") from e

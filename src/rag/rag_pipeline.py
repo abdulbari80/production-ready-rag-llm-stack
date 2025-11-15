@@ -1,12 +1,20 @@
 """
-Upgraded RAG Pipeline
-- Works with Streamlit Cloud (CPU)
-- Uses HuggingFace Inference API Streaming
-- Returns session-safe docs
-- Clean retrieval + generation pipeline
+Retrieval-Augmented Generation (RAG) Pipeline
+
+This module defines the main RAGPipeline class used to:
+- Retrieve relevant documents using FAISS
+- Build contextual prompts
+- Stream LLM outputs token-by-token using HuggingFace Inference API
+- Provide a non-streaming fallback generation interface
+
+The pipeline is optimized for:
+- Streamlit Cloud deployment (CPU-only)
+- Stateless inference
+- Safe document handling in session state
 """
 
 import os
+from pathlib import Path
 from typing import List, Generator, Dict
 import numpy as np
 from dotenv import load_dotenv
@@ -22,14 +30,16 @@ import streamlit as st
 
 logger = get_logger(__name__)
 
-# load_dotenv()
+# dotenv_path = Path(__file__).resolve().parents[2] / ".env"
+# load_dotenv(dotenv_path)
 # HF_API_TOKEN = os.getenv("HUGGINGFACE_API_TOKEN", "").strip('"').strip("'")
+
 HF_API_TOKEN = st.secrets.get("HUGGINGFACE_API_KEY")
 if not HF_API_TOKEN:
     raise ValueError("HuggingFace API token not found in environment variables!")
 else:
     logger.info("API Key successfully loaded")
-# Settings
+
 HF_REPO_ID = settings.hfh_repo_id
 TEMPERATURE = settings.llm_temperature
 THRESHOLD = settings.threshold
@@ -37,14 +47,31 @@ TOP_K = settings.top_k
 
 
 class RAGPipeline:
+    """
+    Main class implementing the Retrieval-Augmented Generation pipeline.
+
+    This pipeline performs:
+    - Retrieval from a FAISS vector store
+    - Prompt construction with contextual documents
+    - Token-by-token generation via HuggingFace Inference API (streaming)
+    - Non-streaming generation for batch use cases
+
+    Parameters
+    ----------
+    vector_store : FaissStore, optional
+        Preloaded FAISS vector store. If None, a new store is created.
+    temperature : float, optional
+        Sampling temperature for the LLM. Default is from settings.
+    streaming : bool, optional
+        Whether to enable streaming mode for token output.
+    """
 
     def __init__(self, vector_store=None, temperature=TEMPERATURE, streaming=True):
-
         self.vector_store = vector_store or FaissStore()
         self.temperature = temperature
         self.streaming = streaming
 
-        # HF Streaming LLM Client
+        # Initialize HuggingFace Inference client
         self.client = InferenceClient(api_key=HF_API_TOKEN)
         self.model_id = HF_REPO_ID
 
@@ -54,10 +81,29 @@ class RAGPipeline:
     # Retrieve + Filter
     # -----------------------------------------------------------
     def retrieve(self, query: str, k: int = TOP_K) -> List[Document]:
-        # Empty FAISS store → no docs
+        """
+        Retrieve the top-k documents most relevant to the query from FAISS.
+
+        Retrieval includes an adaptive filtering mechanism based on:
+        - Maximum score
+        - Dynamic threshold using mean + variance
+        - Minimum relevance cutoff
+
+        Parameters
+        ----------
+        query : str
+            User input or question.
+        k : int, optional
+            Number of top documents to consider. Uses global TOP_K by default.
+
+        Returns
+        -------
+        List[Document]
+            A list of filtered relevant documents. May return an empty list.
+        """
         if not self.vector_store.is_loaded:
-            logger.warning("VectorStoreNotInitializedError: FAISS store empty, returning no documents.")
-            return []  # do NOT raise, keep graceful behavior for demo
+            logger.warning("Vector store empty — returning no documents.")
+            return []
 
         try:
             results = self.vector_store.similarity_search(query, k=k)
@@ -76,32 +122,72 @@ class RAGPipeline:
 
         docs, scores = zip(*results)
         scores = np.array(scores)
+
         top_score = max(scores)
         logger.info(f"Best cosine similarity score: {top_score:.4f}")
+
         cutoff = max(THRESHOLD, scores.mean() + 0.5 * scores.std())
-        
         filtered = [doc for doc, s in results if s >= cutoff]
+
         return filtered if filtered else [docs[0]]
 
     # -----------------------------------------------------------
     # Prompt Builder
     # -----------------------------------------------------------
     def build_prompt(self, query: str, docs: List[Document]) -> str:
+        """
+        Construct a prompt that includes retrieved context followed by the user query.
+
+        Parameters
+        ----------
+        query : str
+            The user question.
+        docs : List[Document]
+            List of documents selected by the retriever.
+
+        Returns
+        -------
+        str
+            The generated prompt string ready for LLM inference.
+        """
         if docs:
             context = "\n\n".join([d.page_content for d in docs])
             return (
                 "You are a helpful assistant.\n"
-                "Use the provided context to answer.\n\n"
+                "This application intends to answer question on Australian privacy laws.\n"
+                "Try to provide relevant and accurate answer as far as possible.\n"
+                "Try to retrieve and append section number as far as possible.\n"
+                "If no relevant answer is not found admit with honesty.\n"
+                "Most importantly, use the provided context to answer.\n\n"
                 f"Context:\n{context}\n\n"
                 f"Question: {query}\nAnswer:"
             )
         else:
+            logger.info("Sorry!, no relevant context found.")
             return f"You are a helpful assistant.\n\nQuestion: {query}\nAnswer:"
 
     # -----------------------------------------------------------
     # Streaming Generator (Token-by-token)
     # -----------------------------------------------------------
     def generate_streaming(self, query: str, top_k: int = 3, include_docs: bool = True):
+        """
+        Generate an answer using token streaming from the HF Inference API.
+
+        Parameters
+        ----------
+        query : str
+            The user's question.
+        top_k : int, optional
+            Number of retrieval documents.
+        include_docs : bool, optional
+            Whether the generator should emit retrieved docs as the final event.
+
+        Yields
+        ------
+        dict
+            Either {"token": "..."} for each generated token OR
+            {"docs": [...]} after generation finishes.
+        """
         try:
             docs = self.retrieve(query, k=top_k)
         except Exception as e:
@@ -123,15 +209,12 @@ class RAGPipeline:
             yield {"token": "AI Error: Chat Completions API failed.\n"}
             return
 
-        # Stream individual tokens
         for event in response:
             try:
-                # Make sure choices exist and is non-empty
                 if hasattr(event, "choices") and event.choices:
                     choice = event.choices[0]
                     delta = getattr(choice, "delta", None)
 
-                    # Sometimes delta itself can be None
                     if delta and getattr(delta, "content", None):
                         yield {"token": delta.content}
 
@@ -145,6 +228,21 @@ class RAGPipeline:
     # Non-streaming fallback (used internally / batch)
     # -----------------------------------------------------------
     def generate(self, query: str, top_k: int = 3) -> str:
+        """
+        Execute non-streaming text generation using the HF Inference API.
+
+        Parameters
+        ----------
+        query : str
+            User query.
+        top_k : int, optional
+            Number of retrieval documents.
+
+        Returns
+        -------
+        str
+            The generated answer or an error message.
+        """
         try:
             docs = self.retrieve(query, k=top_k)
         except Exception as e:
@@ -157,7 +255,8 @@ class RAGPipeline:
             result = self.client.text_generation(
                 prompt,
                 max_new_tokens=256,
-                temperature=self.temperature)
+                temperature=self.temperature,
+            )
             return result
         except Exception as e:
             logger.exception(f"Non-streaming LLM generation error: {e}")
@@ -167,6 +266,24 @@ class RAGPipeline:
     # Legacy user_interaction
     # -----------------------------------------------------------
     def user_interaction(self, user_query: str, top_k=TOP_K, return_context=True):
+        """
+        Legacy helper to retrieve context and produce a final answer
+        in a single call.
+
+        Parameters
+        ----------
+        user_query : str
+            The user question.
+        top_k : int, optional
+            Number of documents to retrieve.
+        return_context : bool, optional
+            Whether to return the retrieved docs.
+
+        Returns
+        -------
+        Tuple[str, List[Document]]
+            The answer and optionally the documents.
+        """
         docs = self.retrieve(user_query, k=top_k)
         answer = self.generate(user_query, top_k=top_k)
 

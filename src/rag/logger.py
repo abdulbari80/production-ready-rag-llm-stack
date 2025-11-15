@@ -1,11 +1,28 @@
-# src/rag/logger.py
 import logging
 import os
 from datetime import datetime
 
 def get_logger(name: str, log_dir: str = "logs") -> logging.Logger:
     """
-    Create and configure a logger with both console and file handlers.
+    Create and configure a logger with both console and file output handlers.
+
+    This utility ensures consistent logging across the RAG application by creating:
+    - A daily log file stored under the specified directory.
+    - A console stream handler for runtime visibility.
+    - A check to avoid attaching duplicate handlers.
+
+    Parameters
+    ----------
+    name : str
+        Name of the logger instance, usually set to ``__name__`` of the module
+        requesting logging.
+    log_dir : str, optional
+        Directory where log files will be stored. Defaults to ``"logs"``.
+
+    Returns
+    -------
+    logging.Logger
+        A configured logger instance with INFO-level logging enabled.
     """
     os.makedirs(log_dir, exist_ok=True)
     log_file = os.path.join(log_dir, f"{datetime.now():%Y-%m-%d}.log")
