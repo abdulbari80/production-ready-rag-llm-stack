@@ -66,7 +66,7 @@ body, .block-container {
 
 st.subheader("My AI Buddy")
 st.markdown("###### Let AI speak on Australian privacy law")
-st.caption("RAG • HuggingFace + LangChain + FAISS • Mobile Friendly")
+st.caption("LLM • RAG • HuggingFace + LangChain + FAISS")
 
 # ---------------------------------------------------------
 # Initialize Session State
@@ -105,7 +105,7 @@ for msg in st.session_state.messages:
 # ---------------------------------------------------------
 # Chat Input (bottom)
 # ---------------------------------------------------------
-user_input = st.chat_input("Ask something...")
+user_input = st.chat_input("Ask about Australian privacy law ...")
 
 if user_input:
     # Store user message
@@ -154,15 +154,3 @@ if user_input:
         except Exception as e:
             st.error(f"Error: {e}")
 
-# ---------------------------------------------------------
-# Footer (always under input)
-# ---------------------------------------------------------
-st.markdown(
-    """
-    <hr>
-    <p style='text-align:center; font-size:12px; color:gray;'>
-        &copy; 2025 Abdul Bari. All rights reserved.
-    </p>
-    """,
-    unsafe_allow_html=True
-)
