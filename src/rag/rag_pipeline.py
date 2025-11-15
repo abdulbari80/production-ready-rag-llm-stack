@@ -155,11 +155,7 @@ class RAGPipeline:
             return (
                 "You are a helpful assistant.\n"
                 "This application intends to answer question on Australian privacy laws.\n"
-                "Try to provide relevant and accurate answer as far as possible.\n"
                 "If no relevant answer is not found admit with honesty.\n"
-                "Most importantly, use the provided context to answer.\n"
-                "Don't append the parts of this instructions in the answer.\n"
-                "Don't add 'based on provided context...' like disclaimer in the answer.\n\n"
                 f"Context:\n{context}\n\n"
                 f"Question: {query}\nAnswer:"
             )
