@@ -46,8 +46,18 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# ---------------------------------------------------------
+# Global CSS for light theme + chat bubbles
+# ---------------------------------------------------------
 st.markdown("""
 <style>
+/* Global light theme */
+body, .block-container, .stApp {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+}
+
+/* Chat bubbles */
 .user-msg {
     background-color: #DCF8C6;
     padding: 10px;
@@ -59,6 +69,15 @@ st.markdown("""
     padding: 10px;
     border-radius: 10px;
     margin-bottom: 8px;
+}
+
+/* Optional: scrollbar styling */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 3px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -159,3 +178,14 @@ if user_input:
 
         except Exception as e:
             st.error(f"Error: {e}")
+
+# Footer / Copyright
+st.markdown(
+    """
+    <hr>
+    <p style='text-align:center; font-size:12px; color:gray;'>
+        &copy; 2025 Abdul Bari. All rights reserved.
+    </p>
+    """,
+    unsafe_allow_html=True
+)
