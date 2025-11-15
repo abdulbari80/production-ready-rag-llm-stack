@@ -153,14 +153,17 @@ class RAGPipeline:
         if docs:
             context = "\n\n".join([d.page_content for d in docs])
             return (
-                "You are a helpful assistant.\n"
-                "This intends to answer the questions on Australian privacy laws.\n"
-                "Commence with a thanks note for asking the question.\n"
-                "But don't explicitly mention that the answer is based on the provided context.\n"
-                #"As far as possible give reference to the relevant section of the Act.\n"
-                "If no relevant answer is not found admit with honesty.\n\n"
-                f"Context:\n{context}\n\n"
-                f"Question: {query}\nAnswer:"
+                "You are an assistant that answers questions about Australian privacy law.\n"
+                "Begin your response with a friendly thank-you phrase, such as:\n"
+                "\"Thanks for your question!\" or \"Thank you for asking!\"\n"
+                "Give a clear, direct answer.\n"
+                "Do NOT mention the context, the documents, your reasoning, or how you derived the answer.\n"
+                "Do not end your response mid-sentence and finish last sentence completely.\n"
+                "If the information needed is not present, say you don't have enough information.\n\n"
+                "Relevant Information:\n"
+                f"{context}\n\n"
+                f"User Question: {query}\n"
+                "Answer:"
             )
         else:
             logger.info("Sorry!, no relevant context found.")
@@ -200,8 +203,9 @@ class RAGPipeline:
             response = self.client.chat.completions.create(
                 model=self.model_id,
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=256,
+                max_tokens=512,
                 temperature=self.temperature,
+                top_p=0.9,
                 stream=True,
             )
         except Exception as e:
