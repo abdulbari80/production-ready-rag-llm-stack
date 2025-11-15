@@ -5,8 +5,13 @@ langchain-community==0.4.1
 langchain-huggingface==1.0.0
 huggingface-hub==0.36.0
 
+# === supporting packages ===
+transformers>=4.30
+torch>=2.0
+sentence-transformers>=2.2
+
 # === Vector Store ===
-faiss-cpu==1.9.0
+faiss-cpu>=1.7
 
 # === Math / Array backend ===
 numpy==1.26.4
