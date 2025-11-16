@@ -10,9 +10,9 @@ class Settings(BaseSettings):
     top_k: int = 3
     llm_temperature: float = 0.20
     threshold: float = 0.50
-    relative_factor : float = 0.80
+    relative_factor: float = 0.80
     context_window_size: int = 1024
-    max_tokens = 768
+    max_tokens: int = 768
 
 settings = Settings()
 
