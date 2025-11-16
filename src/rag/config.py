@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     hf_repo_id: str = "meta-llama/Llama-3.2-1B-Instruct"
     top_k: int = 3
     llm_temperature: float = 0.20
-    threshold: float = 0.60
+    threshold: float = 0.50
     relative_factor : float = 0.80
     context_window_size: int = 1024
     max_tokens = 768

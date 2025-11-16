@@ -119,7 +119,7 @@ class RAGPipeline:
         if not results:
             return []
 
-        docs, scores = zip(*results)
+        _, scores = zip(*results)
         scores = np.array(scores)
 
         # top_score = max(scores)
@@ -128,7 +128,7 @@ class RAGPipeline:
         cutoff = max(THRESHOLD, scores.mean() + 0.5 * scores.std())
         filtered = [doc for doc, score in results if score >= cutoff]
 
-        return filtered if filtered else [docs[0]]
+        return filtered # if filtered else [docs[0]]
 
     # -----------------------------------------------------------
     # Prompt Builder
@@ -151,14 +151,12 @@ class RAGPipeline:
         """
         sys_content = """
         You are a polite senior legal expert specializing in Australian privacy law.
-        Your behaviour rules:
-        - Begin every answer with: "Thanks for asking!"
-        - DO NOT start answers with phrases like "Based on the context" or "The provided context says..."
+        Follow this rules for generating answwer:
+        - Begin the answer with: "Thanks for asking!"
+        - DO NOT start answers with phrases like "Based on the context..." or "The provided context says..."
         - DO NOT mention that you used retrieved documents.
         - Provide clear, concise legal explanations.
-        - If the user question is irrelevant to privacy law, say so politely.
-        - If the documents do not provide enough information, say so honestly.
-        - Always complete your last sentence and do not stop mid-thought.
+        - If the user question is NOT relevant to privacy law, say so politely.
         """
 
         # ASSISTANT MESSAGE — contains RAG-retrieved factual material
@@ -167,12 +165,12 @@ class RAGPipeline:
             context = "\n\n".join([d.page_content for d in docs if docs])
             context_message = {
                 "role": "assistant",
-                "content": f"Here is helpful reference material:\n\n{context}"
+                "content": f"Use this reference information:\n\n{context}"
             }
         else:
             context_message = {
                 "role": "assistant",
-                "content": "No reference material was found for this question."
+                "content": "No reference information is available."
             }
 
         # USER MESSAGE — contains only the user's question (no formatting!)
